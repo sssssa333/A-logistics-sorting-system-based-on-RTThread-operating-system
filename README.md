@@ -16,13 +16,13 @@
 
 Vision Board 是一款专为计算机视觉和机器视觉应用设计的开发板，集成了多种传感器和硬件接口，支持丰富的图像采集和处理功能。该视觉板配备高性能处理器，能够快速运行神经网络和图像算法，适合智能识别、自动驾驶辅助、机器人视觉等场景。 
 
-![LCD 位置图](rt_spark_project/figures/vision_board)
+![LCD 位置图](rt_spark_project/figures/vision_board.png)
 
 ### 15kg总线舵机
 
 本项目采用了一款配备 15kg 扭矩级别的总线舵机的机械臂，具备较强的负载能力和精确的运动控制性能。所用总线舵机通过舵机控制板，采用串口通讯实现多关节联动控制，具有高精度位置反馈和可靠的抗干扰能力。
 
-![LCD 位置图](rt_spark_project/figures/bus_servo)
+![LCD 位置图](rt_spark_project/figures/bus_servo.png)
 
 ## 软件说明
 
