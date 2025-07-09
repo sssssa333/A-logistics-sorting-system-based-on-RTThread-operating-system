@@ -28,7 +28,7 @@ void led_matrix_entry()
     while (1)
     {
         rt_mb_recv(&led_matrix_mb, (rt_uint32_t *)&temperature, RT_WAITING_FOREVER);
-        if (temperature >= 31)
+        if (temperature >= 35)
         {
             for (int i = EXTERN_LED_0; i <= EXTERN_LED_18; i++)
             {

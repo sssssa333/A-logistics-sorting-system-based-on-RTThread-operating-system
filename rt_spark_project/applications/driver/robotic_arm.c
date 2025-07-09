@@ -264,7 +264,7 @@ void servo_transfer_blue(bus_servo_device_t dev)
 void servo_transfer_red(bus_servo_device_t dev)
 {
     dev->id = 1;
-    dev->value = 3072;
+    dev->value = 2900;
     bus_servo_control(dev);
     rt_thread_mdelay(1000);
     dev->id = 2;

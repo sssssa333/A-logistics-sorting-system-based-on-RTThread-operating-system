@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2006-2021, RT-Thread Development Team
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author       Notes
- * 2025-04-28     zengjing       the first version
- */
-
 #include <rthw.h>
 #include <rtthread.h>
 #include <rtdevice.h>
@@ -25,9 +15,13 @@
 #include "cJSON_Utils.h"
 
 #define UART_NAME    "uart2"
+
 static struct rt_semaphore rx_sem;
+
 rt_device_t openmv_serial;
+
 extern volatile rt_bool_t arm_ready;
+
 float object_x_cm;
 float object_y_cm;
 
@@ -37,6 +31,7 @@ uint16_t lable;
 
 char Location[11];
 char ID[21];
+char global_status[11];
 
 void coordinate_transformation(int16_t object_x, int16_t object_y)
 {
@@ -107,6 +102,23 @@ static void uart_parse_frame(uint8_t *buffer, uint8_t length)
             rt_kprintf("JSON parse error\n");
         }
     }
+    else if (buffer[0] == 0xAA && buffer[1] == 0x31 && buffer[2] == 0x44)
+    {
+        // 验证长度字段
+        uint8_t str_len = buffer[3];
+        if (str_len == 0 || (4 + str_len + 1) != length) {
+            rt_kprintf("Invalid status frame length\n");
+            return;
+        }
+
+        // 提取字符串并添加终止符
+        char status_str[20] = {0};
+        memcpy(status_str, &buffer[4], str_len);
+        status_str[str_len] = '\0';  // 确保字符串终止
+
+        rt_kprintf("Object Status: %s\n", status_str);
+        strncpy(global_status, status_str, sizeof(global_status)-1);
+    }
 }
 
 
@@ -133,6 +145,11 @@ static int uart_receive_byte(uint8_t data)
         else if (data == 0x30) {  // 二维码数据
             _data_cnt = 0;  // 重置计数器 - 关键修复！
             state = 20;
+            RxBuffer[1] = data;
+        }
+        else if (data == 0x31) {  // 字符串状态数据
+            _data_cnt = 0;
+            state = 30;
             RxBuffer[1] = data;
         }
         else {
@@ -222,6 +239,46 @@ static int uart_receive_byte(uint8_t data)
         uart_parse_frame(RxBuffer, total_len);
         return 1;
     }
+    /* 字符串状态帧: ID (0x44) */
+    else if (state == 30) {
+        if (data == 0x44) {
+            state = 31;
+            RxBuffer[2] = data;
+        } else {
+            state = 0;
+        }
+    }
+    /* 字符串状态帧: 数据长度 */
+    else if (state == 31) {
+        if (data > 0 && data <= 40) {  // 限制最大长度40字节
+            state = 32;
+            RxBuffer[3] = data;
+            _data_len = data;
+        } else {
+            state = 0;  // 无效长度
+        }
+    }
+    /* 字符串状态帧: 字符串数据 */
+    else if (state == 32) {
+        // 存储数据并检查是否完成
+        RxBuffer[4 + _data_cnt] = data;
+        _data_cnt++;
+
+        if (_data_cnt >= _data_len) {
+            state = 33;  // 等待校验和
+        }
+    }
+    /* 字符串状态帧: 校验和 */
+    else if (state == 33) {
+        state = 0;
+        // 存储校验和
+        RxBuffer[4 + _data_len] = data;
+
+        // 计算完整帧长度 = 帧头(3) + 长度(1) + 数据(N) + 校验和(1)
+        uint8_t total_len = 5 + _data_len;
+        uart_parse_frame(RxBuffer, total_len);
+        return 1;
+    }
     return 0;
 }
 
@@ -298,5 +355,3 @@ rt_err_t openmv_uart_init(void *parameter)
 
     return RT_EOK;
 }
-
-

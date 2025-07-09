@@ -1,66 +1,50 @@
-# 物流分拣系统
+# LCD 显示例程
 
 ## 简介
 
-本项目主要介绍了基于RTThread操作系统的物流分拣系统。
+本例程主要介绍了如何在 LCD 上显示文字和图片。
 
 ## 硬件说明
 
 星火 1 号开发板板载的是一块 1.3 寸，分辨率为 240x240 的 LCD 显示屏，显示效果十分细腻。显示屏的驱动芯片是 ST7789 v3, 通信接口使用的是 8080 并口，通过 fsmc 模拟出驱动时序和单片机进行通讯。使用了 8 根数据线传输数据，一根地址选择线作为芯片的使能信号。
 
+![LCD 原理图](figures/lcd.png)
 
 ![LCD 位置图](figures/board.png)
 
 ## 软件说明
 
-本项目的源码位于 `/rt_spark_project/applications/driver`。
+本例程的源码位于 `/projects/03_driver_lcd`。
 
+显示图片和文字的源代码位于 libraries/Board_Drivers/lcd/drv_lcd.c 中。
 
-该软件是一个基于RT-Thread实时操作系统的嵌入式综合控制系统，通过多线程并行处理实现多项功能：首先启动WiFi连接线程建立网络通信；随后创建湿度监测线程实时采集并显示环境湿度数据；同时运行蜂鸣器控制线程处理声音提示；通过OpenMV视觉处理线程实现摄像头图像识别；LED矩阵线程负责状态信息显示；OneNET物联网线程实现云平台数据交互；机械臂控制线程执行精确动作指令；最后启动高响应优先级的按键扫描线程检测用户输入。系统采用模块化设计，为网络通信和机械控制分配更大内存资源（2048字节），关键功能添加200毫秒启动延时确保硬件初始化，整体构成一个集环境监测、机器视觉、物联网通信和执行机构控制于一体的智能硬件平台。
+在 main 函数中，通过调用已经封装好的 LCD API 函数，首先执行的是清屏操作，将 LCD 全部刷成白色。然后设置画笔的颜色为黑色，背景色为白色。接着显示 RT-Thread 的 LOGO。最后会显示一些信息，包括 16x16 像素， 24x24 像素和 32x32 像素的三行英文字符，一条横线和一个同心圆。
 
 ```c
 int main(void)
 {
-    ......
+    lcd_clear(WHITE);
 
-    rt_thread_t wifi_thread = rt_thread_create("wifi",wifi_entry,RT_NULL,1024,20,20);
-    if (wifi_thread != RT_NULL)
-        rt_thread_startup(wifi_thread);
-    rt_thread_mdelay(200);
+    /* show RT-Thread logo */
+    lcd_show_image(0, 0, 240, 69, image_rttlogo);
 
-    rt_thread_t humidity_thread = rt_thread_create("humidity",lcd_humidity_entry, RT_NULL,1024,20, 20);
-    if (humidity_thread != RT_NULL)
-        rt_thread_startup(humidity_thread);
+    /* set the background color and foreground color */
+    lcd_set_color(WHITE, BLACK);
 
-    rt_thread_t buzzer_thread = rt_thread_create("buzzer",buzzer_entry, RT_NULL,1024,20, 20);
-    if (buzzer_thread != RT_NULL)
-        rt_thread_startup(buzzer_thread);
+    /* show some string on lcd */
+    lcd_show_string(10, 69, 16, "Hello, RT-Thread!");
+    lcd_show_string(10, 69 + 16, 24, "RT-Thread");
+    lcd_show_string(10, 69 + 16 + 24, 32, "RT-Thread");
 
-    rt_thread_t openmv_thread = rt_thread_create("uart_openmv", openmv_uart_entry, RT_NULL, 1024, 20, 10);
-    if (openmv_thread != RT_NULL)
-        rt_thread_startup(openmv_thread);
+    /* draw a line on lcd */
+    lcd_draw_line(0, 69 + 16 + 24 + 32, 240, 69 + 16 + 24 + 32);
 
-    rt_thread_t led_matrix_thread = rt_thread_create("led_matrix", led_matrix_entry, RT_NULL, 1024, 20, 20);
-    if (led_matrix_thread != RT_NULL)
-        rt_thread_startup(led_matrix_thread);
-    rt_thread_mdelay(200);
-
-    rt_thread_t onenet_thread = rt_thread_create("onenet", onenet_entry, RT_NULL, 2048, 20, 20);
-    if (onenet_thread != RT_NULL)
-        rt_thread_startup(onenet_thread);
-    rt_thread_mdelay(200);
-
-    rt_thread_t robotic_arm_thread = rt_thread_create("robotic_arm", robotic_arm_entry, RT_NULL, 2048, 20, 20);
-    if (robotic_arm_thread != RT_NULL)
-        rt_thread_startup(robotic_arm_thread);
-    rt_thread_mdelay(200);
-
-    rt_thread_t key_scan_thread = rt_thread_create("key_scan",key_scan,RT_NULL,1024,20,1);
-    if (key_scan_thread != RT_NULL)
-        rt_thread_startup(key_scan_thread);
-    rt_thread_mdelay(200);
-
-
+    /* draw a concentric circles */
+    lcd_draw_point(120, 194);
+    for (int i = 0; i < 46; i += 4)
+    {
+        lcd_draw_circle(120, 194, i);
+    }
     return 0;
 }
 ```
@@ -76,8 +60,13 @@ int main(void)
 
 ### 运行效果
 
-按下复位按键重启开发板，正常运行后，LCD 上会显示当前温湿度，同时自动连接wifi，wifi状态有板上led灯提供，绿灯为连接成功，红灯为断开连接。
+按下复位按键重启开发板，观察开发板上 LCD 的实际效果。正常运行后，LCD 上会显示 RT-Thread LOGO，下面会显示 3 行大小为 16、 24、 32 像素的文字，文字下面是一行直线，直线的下方是一个同心圆。如下图所示：
 
+![LCD 显示图案](figures/lcd_show_logo.png)
+
+## 注意事项
+
+屏幕的分辨率是 240x240，输入位置参数时要注意小于 240，不然会出现无法显示的现象。图像的取模方式为自上而下，自左向右，高位在前， 16 位色（RGB-565）。本例程未添加中文字库，不支持显示中文。
 
 ## 引用参考
 

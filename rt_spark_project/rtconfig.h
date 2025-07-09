@@ -282,9 +282,9 @@
 #define PKG_USING_ONENET
 #define PKG_USING_ONENET_SAMPLE
 #define ONENET_USING_MQTT
-#define ONENET_INFO_DEVID "AHT20"
-#define ONENET_INFO_AUTH "version=2018-10-31&res=products%2Fn9xX4555A3%2Fdevices%2FAHT20&et=1776330406&method=md5&sign=Hnv7E2rBYPaOO1D%2F%2Fu5VoA%3D%3D"
-#define ONENET_INFO_PROID "n9xX4555A3"
+#define ONENET_INFO_DEVID "wuliuguanli"
+#define ONENET_INFO_AUTH "version=2018-10-31&res=products%2FgtJjhqVLbN%2Fdevices%2Fwuliuguanli&et=1776330406&method=md5&sign=gUdfOztmnPvP2ApA%2Fe5pBg%3D%3D"
+#define ONENET_INFO_PROID "gtJjhqVLbN"
 #define PKG_USING_ONENET_LATEST_VERSION
 /* end of IoT Cloud */
 /* end of IoT - internet of things */

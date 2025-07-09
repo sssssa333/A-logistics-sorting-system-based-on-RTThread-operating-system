@@ -20,7 +20,7 @@
 
 #define SERVO_MIN 1024    // 逆时针极限位置
 #define SERVO_MAX 3072    // 顺时针极限位置
-#define SERVO_STEP 200     // 每次按键变化的步长
+#define SERVO_STEP 100     // 每次按键变化的步长
 
 void key_scan();
 void key_scan_init();

@@ -7,7 +7,6 @@
  * Date           Author       Notes
  * 2025-4-18      zengjing     first version
  */
-
 #include <rtthread.h>
 #include <rtdevice.h>
 #include <board.h>

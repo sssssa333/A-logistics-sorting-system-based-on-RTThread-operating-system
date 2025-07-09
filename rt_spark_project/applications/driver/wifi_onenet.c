@@ -23,6 +23,7 @@
 
 #include <openmv.h>
 #include <led.h>
+#include <drv_lcd.h>
 #include <string.h>
 #define DBG_TAG "wifi_onenet"
 #define DBG_LVL         DBG_LOG
@@ -43,15 +44,16 @@ void wifi_entry()
 
     while(1)
     {
-
         if(rt_wlan_is_connected() == RT_FALSE)
         {
             LOG_E("wifi disconnect");
+            lcd_show_string(10, 10, 24, "WiFi: Disconnected");
             led_off_green();
             led_on_red();
         }else
         {
             rt_sem_release(wifi_send);
+            lcd_show_string(10, 10, 24, "WiFi: Connected   ");
             led_on_green();
             led_off_red();
         }
@@ -86,6 +88,8 @@ void onenet_entry()
         }
         onenet_mqtt_upload_string("id", ID);
         onenet_mqtt_upload_string("location", Location);
+        onenet_mqtt_upload_string("state", global_status);
+
         rt_thread_mdelay(5000);
     }
 }

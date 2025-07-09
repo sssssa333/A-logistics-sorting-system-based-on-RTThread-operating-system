@@ -20,6 +20,7 @@ extern uint16_t lable;
 
 extern char Location[11];
 extern char ID[21];
+extern char global_status[11];
 
 void openmv_uart_entry();
 

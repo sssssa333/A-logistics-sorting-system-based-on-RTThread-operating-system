@@ -7,10 +7,12 @@
  * Date           Author       Notes
  * 2025-04-20     zengjing       the first version
  */
-
+#include <stdio.h>
+#include <string.h>
 #include <rtthread.h>
 #include <rtdevice.h>
 #include <board.h>
+#include <openmv.h>
 
 extern struct rt_mailbox buzzer_mb;
 
@@ -35,13 +37,20 @@ void buzzer_entry()
     while (1)
        {
             rt_mb_recv(&buzzer_mb, (rt_uint32_t *)&temperature, RT_WAITING_FOREVER);
-            if (temperature >= 31 || temperature < 21)
+            if (temperature >= 35 || temperature < 21)
             {
-//               buzzer_on();
+               buzzer_on();
             }
             else
             {
-//               buzzer_off();
+               buzzer_off();
+            }
+            if (strcmp(global_status, "damaged") == 0)
+            {
+               buzzer_on();
+               rt_thread_mdelay(1000);
+               buzzer_off();
+               rt_thread_mdelay(1000);
             }
        }
 }
