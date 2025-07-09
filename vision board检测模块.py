@@ -2,6 +2,7 @@ from pyb import UART
 import sensor
 import time
 import math
+import sensor, image, time, os, tf, uos, gc,math, struct, lcd
 thresholds = [
     (88, 21, -128, 87, -128, -26),  # 蓝色
     (0, 100, 19, 127, -25, 127),    # 红色
@@ -27,7 +28,7 @@ colors = [
     {"name": "Green", "draw_color": (0, 255, 0)},   # 绿色
 ]
 
-uart = UART(2, 115200)  # 初始化串口 波特率 115200
+uart = UART(2, 0)  # 初始化串口 波特率 115200
 
 def UartSendData(Data):
     uart.write(Data)
@@ -106,12 +107,62 @@ def send_qr_code(content):
     uart.write(packet)
     print(f"[UART Sent] QR: {content}")
 
+# 物体状态帧发送函数（字符串版本）
+def send_object_status(status_str):
+   # 将字符串转换为字节数组
+   status_bytes = status_str.encode('utf-8')
+   str_len = len(status_bytes)
+
+   # 检查长度限制
+   if str_len > 40:
+       status_bytes = status_bytes[:40]
+       str_len = 40
+
+   frame = bytearray()
+   frame.append(0xAA)       # 帧头1
+   frame.append(0x31)       # 帧头2（字符串状态）
+   frame.append(0x44)       # 帧ID
+   frame.append(str_len)    # 字符串长度
+
+   # 添加字符串数据
+   frame.extend(status_bytes)
+
+   # 计算校验和（除校验和外所有字节和）
+   checksum = sum(frame) & 0xFF
+   frame.append(checksum)
+
+   uart.write(frame)
+   print(f"Sent status: {status_str}")
+
+last_status = None
+last_status_send_time = 0
+status_send_delay = 0.5  # 状态发送间隔（秒）
+
+net = None
+labels = None
+
+class object(object):
+    flag = 0
+    fps = 0
+object = object()
+
+try:
+    # load the model, alloc the model file on the heap if we have at least 64K free after loading
+    net = tf.load("trained.tflite", load_to_fb=uos.stat('trained.tflite')[6] > (gc.mem_free() - (64*1024)))
+except Exception as e:
+    print(e)
+    raise Exception('Failed to load "trained.tflite", did you copy the .tflite and labels.txt file onto the mass-storage device? (' + str(e) + ')')
+
+try:
+    labels = [line.rstrip('\n') for line in open("labels.txt")]
+except Exception as e:
+    raise Exception('Failed to load "labels.txt", did you copy the .tflite and labels.txt file onto the mass-storage device? (' + str(e) + ')')
 
 while True:
     clock.tick()
     current_time = time.time()
     img = sensor.snapshot()
-
+    status_detected = False
     # 二维码检测与发送
     qr_detected = False
     for code in img.find_qrcodes():
@@ -129,6 +180,32 @@ while True:
         # 可选: 在图像上绘制二维码区域
         img.draw_rectangle(code.rect(),color=(0, 0, 0))
         # img.draw_string(code.x(), code.y() - 10, content, color=(255, 0, 0))
+
+    for obj in net.classify(img, min_scale=1.0, scale_mul=0.8, x_overlap=0.5, y_overlap=0.5):
+        predictions_list = list(zip(labels, obj.output()))
+        current_status = None  # 初始化为 None
+
+        # 只有满足置信度阈值时才设置状态
+        if predictions_list[0][1] > 0.7:
+            current_status = predictions_list[0][0]
+            print("Status:", current_status)
+            print("damaged:", predictions_list[0][1])
+            print("intact:", predictions_list[1][1])
+        elif predictions_list[1][1] > 0.7:
+            current_status = predictions_list[1][0]
+            print("Status:", current_status)
+            print("damaged:", predictions_list[0][1])
+            print("intact:", predictions_list[1][1])
+        # 如果都不满足条件，current_status 保持为 None
+
+        # 只有检测到有效状态时才发送
+        if current_status is not None:
+            if (current_status != last_status or
+                (current_time - last_status_send_time) > status_send_delay):
+                send_object_status(current_status)
+                last_status = current_status
+                last_status_send_time = current_time
+                status_detected = True
 
     # 颜色块检测与发送
     detected_colors = []
@@ -170,9 +247,20 @@ while True:
             )
 
     # 调试信息输出
-    if not detected_colors and not qr_detected:
+    # if not detected_colors and not qr_detected:
+    #     print("No objects detected")
+    # else:
+    #     for color_info in detected_colors:
+    #         print(f"{color_info['name']}: x={color_info['x']}, y={color_info['y']}")
+
+    # print("FPS:", clock.fps())
+    if not detected_colors and not qr_detected and not status_detected:
         print("No objects detected")
     else:
+      # 如果检测到状态但未检测到颜色块，也打印状态信息
+        if status_detected:
+            print(f"Status: {last_status}")
+
         for color_info in detected_colors:
             print(f"{color_info['name']}: x={color_info['x']}, y={color_info['y']}")
 
