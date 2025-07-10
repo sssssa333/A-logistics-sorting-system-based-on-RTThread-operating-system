@@ -28,7 +28,7 @@ colors = [
     {"name": "Green", "draw_color": (0, 255, 0)},   # 绿色
 ]
 
-uart = UART(2, 0)  # 初始化串口 波特率 115200
+uart = UART(2, 0)  # 初始化串口 波特率 115200 ,有bug ,输入0才是115200
 
 def UartSendData(Data):
     uart.write(Data)
@@ -43,7 +43,7 @@ def QRDataPack(content):
         0xAA,  # 帧头1
         0x30,  # 帧头2 (二维码标识)
         0x43,  # ID (二维码类型)
-        0x00,  # 数据长度占位 (将在后面更新)
+        0x00,  # 数据长度占位
     ])
 
     # 添加内容长度 (2字节)
@@ -107,7 +107,7 @@ def send_qr_code(content):
     uart.write(packet)
     print(f"[UART Sent] QR: {content}")
 
-# 物体状态帧发送函数（字符串版本）
+# 物体状态帧发送函数
 def send_object_status(status_str):
    # 将字符串转换为字节数组
    status_bytes = status_str.encode('utf-8')
@@ -177,7 +177,6 @@ while True:
             last_qr_send_time = current_time
 
         qr_detected = True
-        # 可选: 在图像上绘制二维码区域
         img.draw_rectangle(code.rect(),color=(0, 0, 0))
         # img.draw_string(code.x(), code.y() - 10, content, color=(255, 0, 0))
 
@@ -226,7 +225,7 @@ while True:
                 "y": y
             })
 
-            # 绘制和发送颜色数据 (保持你原有的逻辑)
+            # 绘制和发送颜色数据
             draw_color = colors[color_index]["draw_color"]
             img.draw_rectangle(blob.rect(), color=draw_color)
             img.draw_cross(x, y, color=draw_color)
@@ -247,13 +246,6 @@ while True:
             )
 
     # 调试信息输出
-    # if not detected_colors and not qr_detected:
-    #     print("No objects detected")
-    # else:
-    #     for color_info in detected_colors:
-    #         print(f"{color_info['name']}: x={color_info['x']}, y={color_info['y']}")
-
-    # print("FPS:", clock.fps())
     if not detected_colors and not qr_detected and not status_detected:
         print("No objects detected")
     else:
