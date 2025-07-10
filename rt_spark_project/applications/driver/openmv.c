@@ -143,7 +143,7 @@ static int uart_receive_byte(uint8_t data)
             RxBuffer[1] = data;
         }
         else if (data == 0x30) {  // 二维码数据
-            _data_cnt = 0;  // 重置计数器 - 关键修复！
+            _data_cnt = 0;  // 重置计数器 
             state = 20;
             RxBuffer[1] = data;
         }
